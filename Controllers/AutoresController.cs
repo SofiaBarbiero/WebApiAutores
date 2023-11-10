@@ -16,22 +16,39 @@ namespace WebAppAutores.Controllers
             this.context = context;
         }
 
-        [HttpGet]
+
+        //config del ruteo: puedo tener varias rutas para acceder a un mismo endpoint
+        [HttpGet] // api/actores
+        [HttpGet("listado")] // /api/actores/listado
+        [HttpGet("/listado")] // /listado
         public async Task<ActionResult<List<Autor>>> Get() //include: para traer datos de otra tabla con la cual tiene relacion
         {
             return await context.Autores.Include(x => x.Libros).ToListAsync();
         }
 
+        [HttpGet("primero")]
+        public async Task<ActionResult<Autor>> GetPrimerAutor()
+        {
+            return await context.Autores.Include(x => x.Libros).FirstOrDefaultAsync();
+        }
+
         [HttpPost]
         public async Task<ActionResult> Post(Autor autor)
         {
+            //validacion en controlador contra la BD
+            var existe = await context.Autores.AnyAsync(x => x.Name == autor.Name);
+            if (existe)
+            {
+                return BadRequest($"ya existe un autor con el nombre {autor.Name}"); //$ + {} interpolación de datos!
+            }
+
             context.Add(autor);
             await context.SaveChangesAsync();
             return Ok();
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult> Update(Autor autor, int id)
+        public async Task<ActionResult> Update([FromBody] Autor autor, [FromRoute] int id) // [especifico de donde vienen los datos al momento de la peticion, es opcional]
         {
             if(autor.ID != id)
             {
